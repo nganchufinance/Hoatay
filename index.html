@@ -98,7 +98,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 /* ── Gantt ── */
 .gw{overflow-x:auto;padding:0 0 40px}
 .g{min-width:1500px}
-.th{display:flex;position:sticky;top:76px;z-index:80;background:var(--bg)}
+.th{display:flex;position:sticky;top:0;z-index:80;background:var(--bg);transition:top .15s}
 .th-l{width:380px;flex-shrink:0;border-bottom:2px solid var(--brown);border-right:1px solid var(--bd);padding:7px 14px;font-size:9px;font-weight:700;color:var(--brown);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:flex-end;background:var(--sf2)}
 .th-d{flex:1;display:flex;border-bottom:2px solid var(--brown)}
 .tw{flex:1;text-align:center;padding:6px 2px;font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--tx2);border-left:1px solid var(--bd);background:var(--sf2)}
@@ -257,6 +257,19 @@ const PM={
 const TODAY=new Date();TODAY.setHours(0,0,0,0);
 
 document.addEventListener('DOMContentLoaded',()=>{
+  // Measure actual header + brand stripe height for sticky positioning
+  function fixStickyTop(){
+    const hdr=document.querySelector('.hdr');
+    const stripe=document.querySelector('.brand-stripe');
+    const th=document.querySelector('.th');
+    if(hdr&&th){
+      const h=hdr.offsetHeight+(stripe?stripe.offsetHeight:0);
+      th.style.top=h+'px';
+    }
+  }
+  fixStickyTop();
+  window.addEventListener('resize',fixStickyTop);
+
   render(parse(EMBEDDED_CSV));
   document.getElementById('metaT').textContent='Embedded · 23 Mar 2026';
   // Auto-sync if hosted online (not file://)
