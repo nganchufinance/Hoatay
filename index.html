@@ -348,11 +348,28 @@ function showToast(msg,type){
 }
 
 function parse(txt){
-  const lines=txt.split('\n').map(l=>{
-    const r=[];let c='',q=false;
-    for(let i=0;i<l.length;i++){const ch=l[i];if(ch==='"'){if(q&&l[i+1]==='"'){c+='"';i++}else q=!q}else if(ch===','&&!q){r.push(c.trim());c=''}else c+=ch}
-    r.push(c.trim());return r;
-  });
+  // Proper CSV parser that handles newlines inside quoted fields
+  const lines=[];
+  let row=[],cell='',inQ=false;
+  for(let i=0;i<txt.length;i++){
+    const ch=txt[i];
+    if(ch==='"'){
+      if(inQ&&txt[i+1]==='"'){cell+='"';i++}
+      else inQ=!inQ;
+    } else if(ch===','&&!inQ){
+      row.push(cell.trim().replace(/\r/g,''));cell='';
+    } else if((ch==='\n'||ch==='\r')&&!inQ){
+      if(ch==='\r'&&txt[i+1]==='\n')i++; // skip \r\n
+      row.push(cell.trim().replace(/\r/g,''));
+      if(row.length>1||row[0]!=='')lines.push(row);
+      row=[];cell='';
+    } else {
+      cell+=ch;
+    }
+  }
+  if(cell||row.length)row.push(cell.trim().replace(/\r/g,''));
+  if(row.length>1||row[0]!=='')lines.push(row);
+
   let hi=-1;
   for(let i=0;i<Math.min(lines.length,8);i++){if(lines[i].join(',').toLowerCase().match(/phase.*task/)){hi=i;break}}
   if(hi<0)return[];
@@ -376,7 +393,10 @@ function parse(txt){
     const bd=pD(r[I.bg]||''),ed=pD(r[I.en]||'');
     const ig=tk.includes('✓')||tk.toLowerCase().includes('gate')||tk.toLowerCase().includes('sign-off')||tk.toLowerCase().includes('bàn giao all');
     const oR=r[I.ow]||'',oN=I.on>=0?(r[I.on]||''):'';
-    tasks.push({num:r[0]||'',phase:pk,name:tk,deliverable:I.dl>=0?(r[I.dl]||''):'',
+    // Clean multiline text from deliverables
+    const dlRaw=I.dl>=0?(r[I.dl]||''):'';
+    const dl=dlRaw.replace(/\n/g,'; ').replace(/\s+/g,' ').trim();
+    tasks.push({num:r[0]||'',phase:pk,name:tk.replace(/\n/g,' ').trim(),deliverable:dl,
       bd,ed,dur:r[I.du]||'',owner:oR+(oN?' — '+oN:''),oR,st,pr,ig,
       gate:I.gt>=0?(r[I.gt]||''):''});
   }
