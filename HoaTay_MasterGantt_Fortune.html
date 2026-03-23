@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hoa Tay × Fortune Advisory — Gantt Chart</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+:root{
+  /* Fortune Advisory Brand v2 */
+  --brown:#4D3C2F;
+  --brown-90:rgba(77,60,47,.92);
+  --brown-light:#5e4d40;
+  --brown-dark:#3a2c22;
+  --terra:#C07156;
+  --terra-bg:rgba(192,113,86,.1);
+  --terra-15:rgba(192,113,86,.15);
+  --blue:#00B0F0;
+  --blue-bg:rgba(0,176,240,.08);
+  --blue-15:rgba(0,176,240,.15);
+  --blue-25:rgba(0,176,240,.25);
+  --cream:#E2D7CF;
+  --cream-bg:rgba(226,215,207,.06);
+  --cream-15:rgba(226,215,207,.15);
+  --cream-dark:#d4c7bd;
+  --white:#FFFFFF;
+  --bg:#FAF7F5;
+  --bg2:#F4EFEB;
+  --sf:#FFFFFF;
+  --sf2:#F9F5F2;
+  --bd:rgba(77,60,47,.1);
+  --bd2:rgba(77,60,47,.06);
+  --tx:#3a2c22;
+  --tx2:#7a6b5e;
+  --tx3:#a89a8e;
+
+  /* Phase colors — cream-first, blue for data, terra for accents */
+  --p1:#4D3C2F;  --p1b:rgba(77,60,47,.05);
+  --p2:#00B0F0;  --p2b:rgba(0,176,240,.05);
+  --p3:#C07156;  --p3b:rgba(192,113,86,.05);
+  --p4:#4D3C2F;  --p4b:rgba(77,60,47,.05);
+  --p5:#00B0F0;  --p5b:rgba(0,176,240,.05);
+  --p6:#C07156;  --p6b:rgba(192,113,86,.05);
+
+  --done:#2d8a5e;--donebg:rgba(45,138,94,.08);
+  --wip:#00B0F0;--wipbg:rgba(0,176,240,.08);
+  --pend:#C07156;--pendbg:rgba(192,113,86,.08);
+  --ns:#a89a8e;--nsbg:rgba(168,154,142,.06);
+  --crit:#c0392b;--critbg:rgba(192,57,43,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ── Header ── */
+.hdr{position:sticky;top:0;z-index:100;background:var(--brown);padding:20px 28px 16px;box-shadow:0 2px 16px rgba(77,60,47,.15)}
+.hdr *{color:var(--white)}
+.hdr-r{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.hdr h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
+.hdr h1 em{font-style:normal;font-weight:400;opacity:.7;font-size:14px}
+.hdr-a{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{font-size:9px;font-weight:600;font-family:'JetBrains Mono',monospace;padding:3px 9px;border-radius:14px;display:inline-flex;align-items:center;gap:4px}
+.badge-ok{background:rgba(255,255,255,.15);color:var(--white)}
+.live-d{width:6px;height:6px;border-radius:50%;background:var(--cream);animation:bl 2s infinite}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.25}}
+.meta{font-size:10px;opacity:.6;font-family:'JetBrains Mono',monospace}
+.btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:var(--white);border-radius:6px;padding:5px 11px;font-size:10px;font-weight:600;cursor:pointer;font-family:'Segoe UI',sans-serif;transition:all .15s;display:inline-flex;align-items:center;gap:4px}
+.btn:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.35)}
+.btn svg{width:12px;height:12px}
+.leg{display:flex;gap:14px;flex-wrap:wrap}
+.lg{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:600;opacity:.7;text-transform:uppercase;letter-spacing:.3px}
+.lg i{width:7px;height:7px;border-radius:2px;display:block}
+
+/* ── Stats ── */
+.sts{display:flex;background:var(--sf);border-bottom:1px solid var(--bd)}
+.sc{flex:1;padding:14px 18px;border-right:1px solid var(--bd);min-width:90px}
+.sc:last-child{border-right:none}
+.sc .v{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:-1px}
+.sc .l{font-size:8px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
+.sc.w{flex:2.5;display:flex;align-items:center;gap:14px;flex-direction:row}
+.pbt{flex:1;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;display:flex}
+.pbd{background:var(--done);transition:width .5s;border-radius:4px 0 0 4px}
+.pbw{background:var(--blue);transition:width .5s}
+.pbp{background:var(--terra);transition:width .5s}
+.pbpct{font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--blue);min-width:40px;text-align:right}
+
+/* ── Phase cards ── */
+.pcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));background:var(--sf);border-bottom:1px solid var(--bd)}
+.pc{padding:14px 16px;border-right:1px solid var(--bd);position:relative}
+.pc:last-child{border-right:none}
+.pc::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px}
+.pc .pn{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
+.pc .pd{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--tx3);margin-bottom:6px}
+.pc .pr{font-size:9px;color:var(--tx2);font-family:'JetBrains Mono',monospace}
+.pc .pr b{font-weight:700}
+.pc .pb{height:4px;background:var(--bg2);border-radius:2px;margin-top:7px;overflow:hidden}
+.pc .pf{height:100%;border-radius:2px;transition:width .5s}
+
+/* ── Gantt ── */
+.gw{overflow-x:auto;padding:0 0 40px}
+.g{min-width:1500px}
+.th{display:flex;position:sticky;top:76px;z-index:80;background:var(--bg)}
+.th-l{width:380px;flex-shrink:0;border-bottom:2px solid var(--brown);border-right:1px solid var(--bd);padding:7px 14px;font-size:9px;font-weight:700;color:var(--brown);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:flex-end;background:var(--sf2)}
+.th-d{flex:1;display:flex;border-bottom:2px solid var(--brown)}
+.tw{flex:1;text-align:center;padding:6px 2px;font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--tx2);border-left:1px solid var(--bd);background:var(--sf2)}
+.tw .sub{font-size:7.5px;font-weight:400;color:var(--tx3);display:block;margin-top:1px}
+.tw.now{background:var(--blue-bg);color:var(--blue)}
+.tw.now::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--blue);position:relative;display:block}
+
+/* Phase header row */
+.ph{display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--bd)}
+.pi{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--white)}
+.pcnt{margin-left:auto;font-size:9px;font-weight:500;opacity:.4;text-transform:none;letter-spacing:0}
+
+/* Row */
+.gr{display:flex;transition:background .1s;cursor:default}
+.gr:hover{background:var(--cream-bg)}
+.gr:nth-child(even) .gi,.gr:nth-child(even) .gt{background:var(--sf2)}
+.gr:hover .gi,.gr:hover .gt{background:rgba(226,215,207,.12)!important}
+.gi{width:380px;flex-shrink:0;display:flex;align-items:center;gap:6px;padding:5px 12px;border-bottom:1px solid var(--bd2);border-right:1px solid var(--bd2);min-height:34px;background:var(--sf)}
+.gn{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--tx3);min-width:20px;text-align:right}
+.gbi{width:3px;height:18px;border-radius:1.5px;flex-shrink:0}
+.gname{flex:1;font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--tx)}
+.gow{font-size:8.5px;color:var(--tx3);font-weight:600;background:var(--bg2);padding:2px 6px;border-radius:3px;font-family:'JetBrains Mono',monospace}
+.gpri{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.gpri.c{background:var(--crit);box-shadow:0 0 4px rgba(192,57,43,.35)}
+.gpri.h{background:var(--terra);box-shadow:0 0 4px rgba(192,113,86,.3)}
+.gpri.m{background:var(--blue)}
+.gpri.lo{background:var(--ns)}
+.gs{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:2px 6px;border-radius:3px;white-space:nowrap}
+.gs.d{background:var(--donebg);color:var(--done)}
+.gs.w{background:var(--wipbg);color:var(--wip)}
+.gs.p{background:var(--pendbg);color:var(--pend)}
+.gs.n{background:var(--nsbg);color:var(--ns)}
+
+.gt{flex:1;display:flex;position:relative;border-bottom:1px solid var(--bd2);background:var(--sf)}
+.gc{flex:1;border-left:1px solid var(--bd2);min-height:34px}
+.gc.nc{background:var(--blue-bg)}
+.bw{position:absolute;top:50%;transform:translateY(-50%);height:16px;z-index:5;padding:0 2px}
+.bb{width:100%;height:100%;border-radius:4px;position:relative;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.bb.bd{opacity:.55}
+.bb.bwip{position:relative}
+.bb.bwip::after{content:'';position:absolute;top:0;right:0;width:40%;height:100%;background:repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(255,255,255,.12) 3px,rgba(255,255,255,.12) 6px)}
+.bb.bg{background:repeating-linear-gradient(-45deg,transparent,transparent 3px,rgba(192,57,43,.12) 3px,rgba(192,57,43,.12) 6px)!important;border:1.5px dashed var(--crit);height:14px;box-shadow:none}
+.bl{position:absolute;top:50%;left:6px;transform:translateY(-50%);font-size:7.5px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--white);text-shadow:0 1px 3px rgba(0,0,0,.4);z-index:2;pointer-events:none;white-space:nowrap}
+
+/* Today line */
+.tl{position:absolute;top:0;bottom:0;width:2px;background:var(--crit);z-index:20;pointer-events:none;opacity:.5}
+
+/* Fortune brand stripe at bottom of header */
+.brand-stripe{display:flex;height:4px}
+.brand-stripe div{flex:1}
+
+/* Tip */
+.tip{display:none;position:fixed;z-index:300;background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:14px 18px;max-width:360px;font-size:12px;box-shadow:0 8px 32px rgba(77,60,47,.12);pointer-events:none}
+.tip.on{display:block}
+.tip-t{font-weight:700;margin-bottom:8px;font-size:13px;line-height:1.3;color:var(--brown)}
+.tip-r{display:flex;gap:8px;margin-top:3px;color:var(--tx2);font-size:11px}
+.tip-l{font-weight:600;color:var(--tx3);min-width:70px;flex-shrink:0}
+
+::-webkit-scrollbar{height:6px;width:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--cream-dark);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--tx3)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-r">
+    <h1>Hoa Tay × Fortune Advisory <em>— Project Gantt</em></h1>
+    <div class="hdr-a">
+      <span class="badge badge-ok" id="sBadge"><span class="live-d"></span>LOADED</span>
+      <span class="meta" id="metaT"></span>
+      <button class="btn" onclick="tryLive()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Sync Live
+      </button>
+    </div>
+  </div>
+  <div class="leg" id="legend"></div>
+</div>
+<div class="brand-stripe">
+  <div style="background:#4D3C2F"></div>
+  <div style="background:#E2D7CF"></div>
+  <div style="background:#C07156"></div>
+  <div style="background:#00B0F0"></div>
+</div>
+<div class="sts" id="statsBar"></div>
+<div class="pcards" id="phaseCards"></div>
+<div class="gw"><div class="g" id="gantt"><div class="th"><div class="th-l">Task / Owner / Status</div><div class="th-d" id="thDates"></div></div><div id="gBody"></div></div></div>
+<div class="tip" id="tip"></div>
+
+<script>
+const EMBEDDED_CSV=`#,Phase,Week,Task,Deliverable / Output,Beginning date,Ending date,Duration,Status,Priority,Link,Owner,Owner_Name,Collaborators,Collaborators_Name,Gate / Dependency
+1,Phase 1 - Khởi động,W0,Assign the project,Common Information about the Project,2026/03/07,2026/03/07,0,Done,Low,,PO,Anh Tuan Anh,,,
+2,Phase 1 - Khởi động,W0,Outlook of this industry,Industry Research + Case Studies,2026/03/09,2026/03/10,1,Done,Medium,,AN,Bach,,,FM v1
+3,Phase 1 - Khởi động,W0,Create the sample FM,Draft FM_v1,2026/03/08,2026/03/11,3,Done,Medium,,AN,Ngan,,,FM v1
+4,Phase 1 - Khởi động,W1,"Based on the FM_v1, create the proposal",Propose Proposals,2026/03/11,2026/03/16,5,Done,High,,PM,Ngan,,,
+5,Phase 1 - Khởi động,W1,Meeting minutes; project scope confirmed,Kick-off meeting (online),2026/03/16,2026/03/16,0,Done,Critical,,PO,Anh Tuan Anh,,,
+6,Phase 1 - Khởi động,W1,Official legal Contract,Design the legal contract,2026/03/16,2026/03/19,3,Done,Critical,,PM,Ngan,,,Contract signed
+7,Phase 1 - Khởi động,W1,Design the project overall,"Timeline, Workspace, Folder, Overview of Prj",2026/03/16,2026/03/19,3,Done,Critical,,PM,Ngan,,,
+8,Phase 1 - Khởi động,W1,"Assign the roles, main duties, align the schedule",Internal Fortune Meeting #1. Kick-off,2026/03/16,2026/03/19,3,Done,High,,PM,Ngan,,,After kick-off
+9,Phase 1 - Khởi động,W1,"Access matrix: Google Drive, bank portal, MISA Amis, Zalo/Slack group",Access provisioning,2026/03/16,2026/03/18,2,Done,High,,,,,,
+10,Phase 1 - Khởi động,W1,Signed Project Charter; communication protocol; meeting scheduled,Project charter & governance setup,2026/03/19,2026/03/19,0,Pending,Medium,,PO,Ngan,,,After kick-off
+11,Phase 1 - Khởi động,W1,Leverage the availability of current data => Demo_v1,Demo FM_v1,2026/03/19,2026/03/24,5,In Progress,High,,AN,Ngan,,,
+12,Phase 2 - Mô hình hóa,W2,Align CEO critical thresholds,CEO 5 critical decisions,2026/03/24,2026/03/25,1,Not Started,Critical,,PM,Ngan,CEO,,Must complete W1
+13,Phase 2 - Mô hình hóa,W2,Data collection — financials & contracts,Collected financials & contracts,2026/03/24,2026/03/26,2,Not Started,Medium,,AN,Ngan,,,Access granted
+14,Phase 2 - Mô hình hóa,W2,Full packages of the necessary docs,Comprehensive data collection profile,2026/03/24,2026/03/27,3,Not Started,High,,AN,Hieu,AC,Ngan,Access granted
+15,Phase 2 - Mô hình hóa,W2,Data Inventory Checklist; Gap Report,Data validation & gap assessment,2026/03/24,2026/03/29,5,Not Started,Critical,,AN,Hieu,AC,Ngan,Data collected
+16,Phase 2 - Mô hình hóa,W2,Cash Position Snapshot; A/R Aging Report,Figure out all the gaps,2026/03/29,2026/03/31,2,Not Started,High,,AN,Ngan,AC,Ngan,Runs parallel
+17,Phase 2 - Mô hình hóa,W2,Consolidate FM,Final FM,2026/03/24,2026/03/31,7,Not Started,Critical,,AN,Ngan,AC,Ngan,Runs parallel
+18,Phase 3 - Quy trình & HT,W3,Comprehensive Docs (Legal),Comprehensive Legal Profile,2026/03/31,2026/04/03,3,Not Started,Critical,,AN,Ngan,AC,Ngan,
+19,Phase 3 - Quy trình & HT,W3,Tax Calendar in Google Cal,Quick wins (parallel),2026/03/31,2026/04/03,3,Not Started,Medium,,AN,Ngan,AC,Ngan,
+20,Phase 3 - Quy trình & HT,W3,Draft Income Statement per VAS,Reconstruct P&L,2026/04/03,2026/04/06,3,Not Started,High,,AN,Ngan,,,
+21,Phase 3 - Quy trình & HT,W3,Draft BS + CF statement,Reconstruct BS & Cash Flow,2026/04/03,2026/04/09,6,Not Started,High,,AN,Ngan,,,
+22,Phase 3 - Quy trình & HT,W3,Bank reconciliation (±5%),Bank reconciliation,2026/04/09,2026/04/11,2,Not Started,High,,AN,Ngan,,,
+23,Phase 3 - Quy trình & HT,W3,Classification rules documented,Classification rules,2026/04/11,2026/04/12,1,Not Started,Critical,,AN,Hieu,AC,Ngan,
+24,Phase 3 - Quy trình & HT,W4,KPI Dictionary (15 KPIs),KPI dictionary,2026/04/12,2026/04/14,2,Not Started,Critical,,AC,Ngan,,,
+25,Phase 3 - Quy trình & HT,W4,Consolidated scorecard,Scoring model + CEO calibration,2026/04/14,2026/04/16,2,Not Started,High,,AN,Ngan,"CEO, PO",,
+26,Phase 3 - Quy trình & HT,W4,AN→AC validates→PO approves,✓ Four Eyes gate: P2→P3,2026/04/16,2026/04/16,0,Not Started,High,,PO,,"AN, AC",,
+27,Phase 4 - Recheck,W5,CF pattern & A/R aging deep dive,Cash flow pattern & A/R analysis,2026/04/16,2026/04/18,2,Not Started,High,,AC,,AN,,
+28,Phase 4 - Recheck,W5,Profitability heat map,Project profitability & cost analysis,2026/04/18,2026/04/20,2,Not Started,High,,AC,,AN,,
+29,Phase 4 - Recheck,W5,Diagnostic Report + Risk Register,Diagnostic report + Risk Register,2026/04/20,2026/04/25,5,Not Started,Critical,,AC,,"AN, PO",,
+30,Phase 4 - Recheck,W6,24-month financial model (3 scenarios),Complete financial model,2026/04/25,2026/04/26,1,Not Started,Critical,,PO,,AN,,
+31,Phase 4 - Recheck,W6,Pricing/valuation tool,Build valuation model,2026/04/26,2026/04/28,2,Not Started,High,,PO,,AN,,
+32,Phase 4 - Recheck,W6,Design SOPs (6 documents),SOPs design,2026/04/28,2026/04/29,1,Not Started,Critical,,PO,,"AN, AC",,
+33,Phase 4 - Recheck,W6,Dashboard + alert rules + biểu mẫu,Design dashboard & alerts,2026/04/29,2026/04/30,1,Not Started,High,,PO,,AN,,
+34,Phase 4 - Recheck,W6,CEO reviews & approves all,CEO approval gate,2026/04/30,2026/05/01,1,Not Started,Critical,,PO,,CEO,,
+35,Phase 5 - Go-live & Bàn giao,W7,Build Google Workspace system,Deploy Workspace,2026/05/01,2026/05/03,2,Not Started,Medium,,AN,,PO,,
+36,Phase 5 - Go-live & Bàn giao,W7,Configure MISA Amis integration,MISA Amis setup,2026/05/03,2026/05/08,5,Not Started,Critical,,AN,,"AC, PO",,
+37,Phase 5 - Go-live & Bàn giao,W7,Dashboard live with 15 KPIs,Build live Dashboard,2026/05/08,2026/05/10,2,Not Started,High,,AN,,"PO, AC",,
+38,Phase 5 - Go-live & Bàn giao,W7,Finalize all documents,Final SOPs & reports,2026/05/10,2026/05/12,2,Not Started,Medium,,AN,,PO,,
+39,Phase 5 - Go-live & Bàn giao,W7,Operation guides (E6/E7/E8),Produce operation guides,2026/05/12,2026/05/15,3,Not Started,Medium,,AN,,PO,,
+40,Phase 5 - Go-live & Bàn giao,W7,AN→AC tests→PO signs off,✓ Four Eyes gate: P4→Handover,2026/05/15,2026/05/15,0,Not Started,Critical,,PO,,"AN, AC",,
+41,Phase 5 - Go-live & Bàn giao,W8,Training session 1: Kế toán,Hands-on training,2026/05/15,2026/05/17,2,Not Started,High,,PO,,"AN, AC",,
+42,Phase 5 - Go-live & Bàn giao,W8,Training session 2: CEO + PM,Dashboard & escalation training,2026/05/17,2026/05/19,2,Not Started,Medium,,PO,,"AN, CEO",,
+43,Phase 5 - Go-live & Bàn giao,W8,UAT with real data,End-to-end test,2026/05/17,2026/05/19,2,Not Started,Medium,,PO,,"AN, AC",,
+44,Phase 5 - Go-live & Bàn giao,W8,Go-Live Readiness + Handover sign-off,CEO signs Handover,2026/05/19,2026/05/20,1,Not Started,Critical,,PO,,"AN, AC, CEO",,
+45,Phase 5 - Go-live & Bàn giao,W8,Provision,Provision,2026/05/20,2026/05/23,3,Not Started,Medium,,PO,,"AN, AC, CEO",,
+46,Phase 5 - Go-live & Bàn giao,W8,Provision,Bàn giao all,2026/05/23,2026/05/25,2,Not Started,Critical,,PO,,"AN, AC, CEO",,
+47,Phase 6 - After-Sale,W9,Check-in & verify daily data entry,First week independent operation,2026/05/19,2026/05/21,2,Not Started,Medium,,PO,,"AN, AC",,
+48,Phase 6 - After-Sale,W10,Dashboard health check,SOP compliance audit (>70%),2026/05/21,2026/05/23,2,Not Started,Medium,,PO,,"AN, AC",,
+49,Phase 6 - After-Sale,W11,Recalibrate KPI thresholds,Model & threshold adjustments,2026/05/23,2026/05/25,2,Not Started,Medium,,PO,,AN,,
+50,Phase 6 - After-Sale,W12,Actual vs plan; KPI trends,Monthly Review with CEO,2026/05/25,2026/05/27,2,Not Started,Medium,,PO,,"CEO, AC",,
+51,Phase 6 - After-Sale,W12,PASS/FAIL sustainability assessment,Formal close-out,2026/05/27,2026/05/29,2,Not Started,Medium,,PO,,CEO,,`;
+
+const SHEET_BASE='https://docs.google.com/spreadsheets/d/e/2PACX-1vQy11zBFEO77mDykP6p7GUkItyaoyu5AiCRzB1nuPmFBRsu1iiWLpCgBp7LVFime5ggNrj6fUZNdhpG/pub?gid=815003265&single=true&output=csv';
+
+// Phase styling — alternating Brown / Blue / Terra to follow brand rules
+const PM={
+  'Phase 1':{c:'#4D3C2F',bg:'rgba(77,60,47,.04)', icon:'P1',lbl:'Phase 1 — Khởi động'},
+  'Phase 2':{c:'#00B0F0',bg:'rgba(0,176,240,.04)', icon:'P2',lbl:'Phase 2 — Mô hình hóa'},
+  'Phase 3':{c:'#C07156',bg:'rgba(192,113,86,.04)', icon:'P3',lbl:'Phase 3 — Quy trình & HT'},
+  'Phase 4':{c:'#4D3C2F',bg:'rgba(77,60,47,.04)', icon:'P4',lbl:'Phase 4 — Recheck'},
+  'Phase 5':{c:'#00B0F0',bg:'rgba(0,176,240,.04)', icon:'P5',lbl:'Phase 5 — Go-live & Bàn giao'},
+  'Phase 6':{c:'#C07156',bg:'rgba(192,113,86,.04)', icon:'AS',lbl:'Phase 6 — After-Sale'},
+};
+const TODAY=new Date();TODAY.setHours(0,0,0,0);
+
+document.addEventListener('DOMContentLoaded',()=>{
+  render(parse(EMBEDDED_CSV));
+  document.getElementById('metaT').textContent='Embedded · 23 Mar 2026';
+  // Auto-sync if hosted online (not file://)
+  if(window.location.protocol!=='file:'){
+    setTimeout(()=>tryLive(),500);
+  }
+});
+
+function tryLive(){
+  const b=document.getElementById('sBadge');
+  const mt=document.getElementById('metaT');
+  b.innerHTML='⟳ SYNCING…';b.style.background='rgba(255,255,255,.1)';
+  mt.textContent='Fetching latest from Google Sheet…';
+  showToast('Syncing with Google Sheet…','info');
+
+  // Cache-busting: append timestamp to break Google's 5-min cache
+  const url=SHEET_BASE+'&_cb='+Date.now();
+
+  fetch(url,{cache:'no-store'})
+  .then(r=>{
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.text();
+  })
+  .then(csv=>{
+    // Verify it's actual CSV, not an error page
+    if(csv.includes('<!DOCTYPE') || csv.includes('<html')){
+      throw new Error('Google returned HTML instead of CSV. The sheet may not be published.');
+    }
+    const newTasks=parse(csv);
+    if(!newTasks.length) throw new Error('CSV parsed but 0 tasks found.');
+
+    // Count changes vs embedded
+    const embTasks=parse(EMBEDDED_CSV);
+    let changes=0;
+    newTasks.forEach((nt,i)=>{
+      const et=embTasks[i];
+      if(!et||nt.st!==et.st||nt.name!==et.name) changes++;
+    });
+    if(newTasks.length!==embTasks.length) changes+=Math.abs(newTasks.length-embTasks.length);
+
+    render(newTasks);
+    b.innerHTML='<span class="live-d"></span>LIVE';b.style.background='rgba(255,255,255,.15)';
+    const ts=new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    mt.textContent='Live · '+ts+' · '+newTasks.length+' tasks';
+
+    if(changes>0){
+      showToast('✓ Synced! '+changes+' change'+(changes>1?'s':'')+' detected vs embedded data.','success');
+    } else {
+      showToast('✓ Synced! Data matches embedded — no changes yet.','success');
+    }
+  })
+  .catch(e=>{
+    b.innerHTML='OFFLINE';b.style.background='rgba(192,113,86,.2)';
+    mt.textContent='Showing embedded data (sync failed)';
+
+    // Detect the specific issue and give clear guidance
+    const isLocal=window.location.protocol==='file:';
+    if(isLocal){
+      showToast('⚠ Cannot sync from a local file. Upload this HTML to a web host (GitHub Pages, Netlify, Google Drive web) to enable live sync.','error');
+    } else {
+      showToast('⚠ Sync failed: '+e.message+'. Check that the sheet is published to web as CSV.','error');
+    }
+  });
+}
+
+// ── Toast notification ──
+function showToast(msg,type){
+  let t=document.getElementById('toast');
+  if(!t){
+    t=document.createElement('div');t.id='toast';
+    Object.assign(t.style,{position:'fixed',bottom:'24px',left:'50%',transform:'translateX(-50%) translateY(20px)',
+      padding:'12px 22px',borderRadius:'10px',fontSize:'12px',fontWeight:'600',fontFamily:"'Segoe UI',sans-serif",
+      zIndex:'9999',opacity:'0',transition:'all .35s ease',maxWidth:'520px',textAlign:'center',
+      boxShadow:'0 8px 32px rgba(77,60,47,.2)',lineHeight:'1.5'});
+    document.body.appendChild(t);
+  }
+  const colors={
+    info:{bg:'#4D3C2F',color:'#fff'},
+    success:{bg:'#2d8a5e',color:'#fff'},
+    error:{bg:'#c0392b',color:'#fff'}
+  }[type]||{bg:'#4D3C2F',color:'#fff'};
+  t.style.background=colors.bg;t.style.color=colors.color;
+  t.textContent=msg;
+  // Animate in
+  requestAnimationFrame(()=>{t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)'});
+  // Auto dismiss
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(20px)'},type==='error'?8000:4000);
+}
+
+function parse(txt){
+  const lines=txt.split('\n').map(l=>{
+    const r=[];let c='',q=false;
+    for(let i=0;i<l.length;i++){const ch=l[i];if(ch==='"'){if(q&&l[i+1]==='"'){c+='"';i++}else q=!q}else if(ch===','&&!q){r.push(c.trim());c=''}else c+=ch}
+    r.push(c.trim());return r;
+  });
+  let hi=-1;
+  for(let i=0;i<Math.min(lines.length,8);i++){if(lines[i].join(',').toLowerCase().match(/phase.*task/)){hi=i;break}}
+  if(hi<0)return[];
+  const H=lines[hi].map(h=>h.toLowerCase().replace(/[^a-z0-9_ ]/g,'').trim());
+  const ci=k=>H.findIndex(h=>h.includes(k));
+  const I={ph:ci('phase'),tk:ci('task'),dl:Math.max(ci('deliverable'),ci('output')),
+    bg:ci('beginning'),en:ci('ending'),du:ci('duration'),st:ci('status'),pr:ci('priority'),
+    ow:ci('owner'),on:ci('owner_name')>=0?ci('owner_name'):ci('ownername'),gt:Math.max(ci('gate'),ci('dependency'))};
+  const tasks=[];
+  for(let i=hi+1;i<lines.length;i++){
+    const r=lines[i];if(!r||r.length<4)continue;
+    const tk=r[I.tk]||'',ph=r[I.ph]||'';if(!tk||!ph)continue;
+    const rs=(r[I.st]||'').toLowerCase();
+    let st='n';if(rs.includes('done'))st='d';else if(rs.includes('progress'))st='w';else if(rs.includes('pend'))st='p';
+    const rp=(r[I.pr]||'').toLowerCase();
+    let pr='m';if(rp.includes('crit'))pr='c';else if(rp.includes('high'))pr='h';else if(rp.includes('low'))pr='lo';
+    let pk='Phase 1';
+    if(ph.includes('6')||ph.toLowerCase().includes('after'))pk='Phase 6';
+    else if(ph.includes('5'))pk='Phase 5';else if(ph.includes('4'))pk='Phase 4';
+    else if(ph.includes('3'))pk='Phase 3';else if(ph.includes('2'))pk='Phase 2';
+    const bd=pD(r[I.bg]||''),ed=pD(r[I.en]||'');
+    const ig=tk.includes('✓')||tk.toLowerCase().includes('gate')||tk.toLowerCase().includes('sign-off')||tk.toLowerCase().includes('bàn giao all');
+    const oR=r[I.ow]||'',oN=I.on>=0?(r[I.on]||''):'';
+    tasks.push({num:r[0]||'',phase:pk,name:tk,deliverable:I.dl>=0?(r[I.dl]||''):'',
+      bd,ed,dur:r[I.du]||'',owner:oR+(oN?' — '+oN:''),oR,st,pr,ig,
+      gate:I.gt>=0?(r[I.gt]||''):''});
+  }
+  return tasks;
+}
+function pD(s){if(!s)return null;const d=new Date(s.replace(/\//g,'-').trim());return isNaN(d)?null:d}
+function fmt(d){return d?d.toLocaleDateString('en-US',{month:'short',day:'numeric'}):'?'}
+
+function render(tasks){
+  if(!tasks.length)return;
+  const all=tasks.filter(t=>t.bd&&t.ed).flatMap(t=>[t.bd,t.ed]);
+  const mn=new Date(Math.min(...all));const mx=new Date(Math.max(...all));
+  mn.setDate(mn.getDate()-mn.getDay());mx.setDate(mx.getDate()+(6-mx.getDay()));
+  const wks=[];let d=new Date(mn);while(d<=mx){wks.push(new Date(d));d.setDate(d.getDate()+7)}
+  const td=Math.round((mx-mn)/864e5)+1;
+
+  // Legend (white text in brown header)
+  document.getElementById('legend').innerHTML=
+    Object.values(PM).map(p=>`<div class="lg"><i style="background:${p.c}"></i>${p.lbl}</div>`).join('')+
+    '<div class="lg" style="margin-left:6px"><i style="background:var(--done);border-radius:50%"></i>Done</div>'+
+    '<div class="lg"><i style="background:var(--wip);border-radius:50%"></i>WIP</div>'+
+    '<div class="lg"><i style="background:var(--pend);border-radius:50%"></i>Pending</div>';
+
+  // Stats
+  const tot=tasks.length,dn=tasks.filter(t=>t.st==='d').length,wp=tasks.filter(t=>t.st==='w').length,
+    pd=tasks.filter(t=>t.st==='p').length,ns=tot-dn-wp-pd,cr=tasks.filter(t=>t.pr==='c').length;
+  const dp=Math.round(dn/tot*100),wp2=Math.round(wp/tot*100),pp=Math.round(pd/tot*100);
+  document.getElementById('statsBar').innerHTML=
+    `<div class="sc"><div class="v" style="color:var(--brown)">${tot}</div><div class="l">Total</div></div>`+
+    `<div class="sc"><div class="v" style="color:var(--done)">${dn}</div><div class="l">Done</div></div>`+
+    `<div class="sc"><div class="v" style="color:var(--blue)">${wp}</div><div class="l">WIP</div></div>`+
+    `<div class="sc"><div class="v" style="color:var(--terra)">${pd}</div><div class="l">Pending</div></div>`+
+    `<div class="sc"><div class="v" style="color:var(--ns)">${ns}</div><div class="l">Not Started</div></div>`+
+    `<div class="sc"><div class="v" style="color:var(--crit)">${cr}</div><div class="l">Critical</div></div>`+
+    `<div class="sc w"><div class="l">Progress</div><div class="pbt"><div class="pbd" style="width:${dp}%"></div><div class="pbw" style="width:${wp2}%"></div><div class="pbp" style="width:${pp}%"></div></div><div class="pbpct">${dp}%</div></div>`;
+
+  // Phase cards
+  const pg={};tasks.forEach(t=>{if(!pg[t.phase])pg[t.phase]=[];pg[t.phase].push(t)});
+  const pKeys=Object.keys(pg);
+  document.getElementById('phaseCards').innerHTML=pKeys.map((k,idx)=>{
+    const p=PM[k]||PM['Phase 1'];const pts=pg[k];const dn2=pts.filter(t=>t.st==='d').length;const pct=Math.round(dn2/pts.length*100);
+    const ds=pts.filter(t=>t.bd&&t.ed).flatMap(t=>[t.bd,t.ed]);
+    const mi=ds.length?new Date(Math.min(...ds)):null,ma=ds.length?new Date(Math.max(...ds)):null;
+    return `<div class="pc" style="--pcc:${p.c}"><style>.pc:nth-child(${idx+1})::before{background:${p.c}}</style>
+      <div class="pn" style="color:${p.c}">${p.lbl}</div>
+      <div class="pd">${mi?fmt(mi):'?'} → ${ma?fmt(ma):'?'}</div>
+      <div class="pr"><b style="color:var(--done)">${dn2}</b>/${pts.length} tasks · <b style="color:var(--crit)">${pts.filter(t=>t.pr==='c').length}</b> crit</div>
+      <div class="pb"><div class="pf" style="width:${pct}%;background:${p.c}"></div></div></div>`;
+  }).join('');
+
+  // Week header
+  const thD=document.getElementById('thDates');thD.innerHTML='';
+  wks.forEach(ws=>{const we=new Date(ws);we.setDate(we.getDate()+6);
+    const ic=TODAY>=ws&&TODAY<=we;
+    const el=document.createElement('div');el.className='tw'+(ic?' now':'');
+    el.innerHTML=fmt(ws)+'<span class="sub">'+fmt(we)+'</span>';thD.appendChild(el);
+  });
+
+  // Rows
+  const body=document.getElementById('gBody');body.innerHTML='';let cp='';
+  const stM={d:['gs d','Done'],w:['gs w','WIP'],p:['gs p','Pend'],n:['gs n','—']};
+
+  tasks.forEach(task=>{
+    if(task.phase!==cp){cp=task.phase;const p=PM[cp]||PM['Phase 1'];const pts=pg[cp]||[];
+      const h=document.createElement('div');h.className='ph';h.style.background=p.bg;h.style.color=p.c;
+      h.innerHTML=`<div class="pi" style="background:${p.c}">${p.icon}</div>${p.lbl}<span class="pcnt">${pts.length} tasks</span>`;
+      body.appendChild(h);
+    }
+    const p=PM[task.phase]||PM['Phase 1'];
+    const row=document.createElement('div');row.className='gr';
+    const [sc,sl]=stM[task.st]||stM.n;
+    const pc={c:'gpri c',h:'gpri h',m:'gpri m',lo:'gpri lo'}[task.pr]||'gpri m';
+
+    const info=document.createElement('div');info.className='gi';
+    info.innerHTML=`<span class="gn">${task.num}</span><div class="gbi" style="background:${p.c}"></div>
+      <span class="gname">${task.name}</span><span class="gow">${task.oR||'—'}</span>
+      <div class="${pc}"></div><span class="${sc}">${sl}</span>`;
+
+    const tl=document.createElement('div');tl.className='gt';
+    wks.forEach(ws=>{const we=new Date(ws);we.setDate(we.getDate()+6);
+      const c=document.createElement('div');c.className='gc'+(TODAY>=ws&&TODAY<=we?' nc':'');tl.appendChild(c);
+    });
+
+    if(task.bd&&task.ed){
+      const sOff=Math.max(0,(task.bd-mn)/864e5),eOff=Math.min(td,(task.ed-mn)/864e5+1);
+      const lP=(sOff/td)*100,wP=Math.max(1.2,((eOff-sOff)/td)*100);
+      const bw=document.createElement('div');bw.className='bw';bw.style.left=lP+'%';bw.style.width=wP+'%';
+      const bb=document.createElement('div');
+      if(task.ig){bb.className='bb bg'}
+      else{bb.className='bb'+(task.st==='d'?' bd':task.st==='w'?' bwip':'');bb.style.background=p.c}
+      const lb=document.createElement('span');lb.className='bl';lb.textContent=fmt(task.bd)+'→'+fmt(task.ed);
+      bw.appendChild(bb);if(wP>3.5)bw.appendChild(lb);tl.appendChild(bw);
+    }
+
+    if(TODAY>=mn&&TODAY<=mx){
+      const tp=((TODAY-mn)/864e5/td)*100;
+      const line=document.createElement('div');line.className='tl';line.style.left=tp+'%';tl.appendChild(line);
+    }
+
+    row.appendChild(info);row.appendChild(tl);body.appendChild(row);
+
+    row.addEventListener('mouseenter',()=>{
+      const tip=document.getElementById('tip');
+      tip.innerHTML=`<div class="tip-t">${task.name}</div>
+        ${task.deliverable?`<div class="tip-r"><span class="tip-l">Deliverable</span>${task.deliverable}</div>`:''}
+        <div class="tip-r"><span class="tip-l">Owner</span>${task.owner||'—'}</div>
+        <div class="tip-r"><span class="tip-l">Timeline</span>${fmt(task.bd)} → ${fmt(task.ed)} (${task.dur||'?'}d)</div>
+        <div class="tip-r"><span class="tip-l">Priority</span>${{c:'CRITICAL',h:'HIGH',m:'MEDIUM',lo:'LOW'}[task.pr]}</div>
+        <div class="tip-r"><span class="tip-l">Status</span>${{d:'Done ✓',w:'In Progress',p:'Pending',n:'Not Started'}[task.st]}</div>
+        ${task.gate?`<div class="tip-r"><span class="tip-l">Gate</span>${task.gate}</div>`:''}`;
+      tip.classList.add('on');
+    });
+    row.addEventListener('mousemove',e=>{const t=document.getElementById('tip');t.style.left=(e.clientX+14)+'px';t.style.top=(e.clientY-8)+'px'});
+    row.addEventListener('mouseleave',()=>document.getElementById('tip').classList.remove('on'));
+  });
+}
+</script>
+</body>
+</html>
