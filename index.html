@@ -107,9 +107,15 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .tw.now::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--blue);position:relative;display:block}
 
 /* Phase header row */
-.ph{display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--bd)}
+.ph{display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--bd);cursor:pointer;user-select:none;transition:background .15s}
+.ph:hover{filter:brightness(.97)}
 .pi{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--white)}
 .pcnt{margin-left:auto;font-size:9px;font-weight:500;opacity:.4;text-transform:none;letter-spacing:0}
+.ph-toggle{width:18px;height:18px;border-radius:4px;border:1px solid currentColor;opacity:.35;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .2s;flex-shrink:0}
+.ph:hover .ph-toggle{opacity:.7}
+.ph.collapsed .ph-toggle{transform:rotate(-90deg)}
+.phase-group{overflow:hidden;transition:max-height .3s ease}
+.phase-group.collapsed{max-height:0!important}
 
 /* Row */
 .gr{display:flex;transition:background .1s;cursor:default}
@@ -186,7 +192,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 </div>
 <div class="sts" id="statsBar"></div>
 <div class="pcards" id="phaseCards"></div>
-<div class="gw"><div class="g" id="gantt"><div class="th"><div class="th-l">Task / Owner / Status</div><div class="th-d" id="thDates"></div></div><div id="gBody"></div></div></div>
+<div class="gw"><div class="g" id="gantt"><div class="th"><div class="th-l">Deliverable / Owner / Status</div><div class="th-d" id="thDates"></div></div><div id="gBody"></div></div></div>
 <div class="tip" id="tip"></div>
 
 <script>
@@ -471,21 +477,41 @@ function render(tasks){
   // Rows
   const body=document.getElementById('gBody');body.innerHTML='';let cp='';
   const stM={d:['gs d','Done'],w:['gs w','WIP'],p:['gs p','Pend'],n:['gs n','—']};
+  let currentGroup=null;
 
   tasks.forEach(task=>{
-    if(task.phase!==cp){cp=task.phase;const p=PM[cp]||PM['Phase 1'];const pts=pg[cp]||[];
+    if(task.phase!==cp){
+      cp=task.phase;const p=PM[cp]||PM['Phase 1'];const pts=pg[cp]||[];
+      const phaseId='phase-'+cp.replace(/\s+/g,'-');
+
+      // Phase header with toggle
       const h=document.createElement('div');h.className='ph';h.style.background=p.bg;h.style.color=p.c;
-      h.innerHTML=`<div class="pi" style="background:${p.c}">${p.icon}</div>${p.lbl}<span class="pcnt">${pts.length} tasks</span>`;
+      h.innerHTML=`<div class="ph-toggle">▼</div><div class="pi" style="background:${p.c}">${p.icon}</div>${p.lbl}<span class="pcnt">${pts.length} tasks</span>`;
+      h.setAttribute('data-target',phaseId);
+      h.onclick=function(){
+        const grp=document.getElementById(this.getAttribute('data-target'));
+        const isCollapsed=grp.classList.toggle('collapsed');
+        this.classList.toggle('collapsed',isCollapsed);
+      };
       body.appendChild(h);
+
+      // Phase group container
+      currentGroup=document.createElement('div');
+      currentGroup.className='phase-group';
+      currentGroup.id=phaseId;
+      body.appendChild(currentGroup);
     }
     const p=PM[task.phase]||PM['Phase 1'];
     const row=document.createElement('div');row.className='gr';
     const [sc,sl]=stM[task.st]||stM.n;
     const pc={c:'gpri c',h:'gpri h',m:'gpri m',lo:'gpri lo'}[task.pr]||'gpri m';
 
+    // Show Deliverable/Output instead of Task name
+    const displayName=task.deliverable||task.name;
+
     const info=document.createElement('div');info.className='gi';
     info.innerHTML=`<span class="gn">${task.num}</span><div class="gbi" style="background:${p.c}"></div>
-      <span class="gname">${task.name}</span><span class="gow">${task.oR||'—'}</span>
+      <span class="gname">${displayName}</span><span class="gow">${task.oR||'—'}</span>
       <div class="${pc}"></div><span class="${sc}">${sl}</span>`;
 
     const tl=document.createElement('div');tl.className='gt';
@@ -509,8 +535,10 @@ function render(tasks){
       const line=document.createElement('div');line.className='tl';line.style.left=tp+'%';tl.appendChild(line);
     }
 
-    row.appendChild(info);row.appendChild(tl);body.appendChild(row);
+    row.appendChild(info);row.appendChild(tl);
+    currentGroup.appendChild(row);
 
+    // Tooltip — show Task name as title, Deliverable in detail
     row.addEventListener('mouseenter',()=>{
       const tip=document.getElementById('tip');
       tip.innerHTML=`<div class="tip-t">${task.name}</div>
