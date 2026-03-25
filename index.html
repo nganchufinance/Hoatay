@@ -17,8 +17,7 @@
   --terra-15:rgba(192,113,86,.15);
   --blue:#00B0F0;
   --blue-bg:rgba(0,176,240,.08);
-  --blue-15:rgba(0,176,240,.15);
-  --blue-25:rgba(0,176,240,.25);
+  --blue-15:rgba(0,176,240,.25);
   --cream:#E2D7CF;
   --cream-bg:rgba(226,215,207,.06);
   --cream-15:rgba(226,215,207,.15);
@@ -192,7 +191,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 </div>
 <div class="sts" id="statsBar"></div>
 <div class="pcards" id="phaseCards"></div>
-<div class="gw"><div class="g" id="gantt"><div class="th"><div class="th-l">Deliverable / Owner / Status</div><div class="th-d" id="thDates"></div></div><div id="gBody"></div></div></div>
+
+<div class="gw"><div class="g" id="gantt"><div id="gBody"></div></div></div>
+
 <div class="tip" id="tip"></div>
 
 <script>
@@ -251,7 +252,6 @@ const EMBEDDED_CSV=`#,Phase,Week,Task,Deliverable / Output,Beginning date,Ending
 
 const SHEET_BASE='https://docs.google.com/spreadsheets/d/e/2PACX-1vQy11zBFEO77mDykP6p7GUkItyaoyu5AiCRzB1nuPmFBRsu1iiWLpCgBp7LVFime5ggNrj6fUZNdhpG/pub?gid=815003265&single=true&output=csv';
 
-// Phase styling — alternating Brown / Blue / Terra to follow brand rules
 const PM={
   'Phase 1':{c:'#4D3C2F',bg:'rgba(77,60,47,.04)', icon:'P1',lbl:'Phase 1 — Khởi động'},
   'Phase 2':{c:'#00B0F0',bg:'rgba(0,176,240,.04)', icon:'P2',lbl:'Phase 2 — Mô hình hóa'},
@@ -263,14 +263,14 @@ const PM={
 const TODAY=new Date();TODAY.setHours(0,0,0,0);
 
 document.addEventListener('DOMContentLoaded',()=>{
-  // Measure actual header + brand stripe height for sticky positioning
   function fixStickyTop(){
     const hdr=document.querySelector('.hdr');
     const stripe=document.querySelector('.brand-stripe');
-    const th=document.querySelector('.th');
-    if(hdr&&th){
+    // Đã cập nhật để target tất cả thẻ `.th` (với querySelectorAll)
+    const ths=document.querySelectorAll('.th');
+    if(hdr&&ths.length){
       const h=hdr.offsetHeight+(stripe?stripe.offsetHeight:0);
-      th.style.top=h+'px';
+      ths.forEach(th => th.style.top=h+'px');
     }
   }
   fixStickyTop();
@@ -278,7 +278,6 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   render(parse(EMBEDDED_CSV));
   document.getElementById('metaT').textContent='Embedded · 23 Mar 2026';
-  // Auto-sync if hosted online (not file://)
   if(window.location.protocol!=='file:'){
     setTimeout(()=>tryLive(),500);
   }
@@ -291,7 +290,6 @@ function tryLive(){
   mt.textContent='Fetching latest from Google Sheet…';
   showToast('Syncing with Google Sheet…','info');
 
-  // Cache-busting: append timestamp to break Google's 5-min cache
   const url=SHEET_BASE+'&_cb='+Date.now();
 
   fetch(url,{cache:'no-store'})
@@ -300,14 +298,12 @@ function tryLive(){
     return r.text();
   })
   .then(csv=>{
-    // Verify it's actual CSV, not an error page
     if(csv.includes('<!DOCTYPE') || csv.includes('<html')){
       throw new Error('Google returned HTML instead of CSV. The sheet may not be published.');
     }
     const newTasks=parse(csv);
     if(!newTasks.length) throw new Error('CSV parsed but 0 tasks found.');
 
-    // Count changes vs embedded
     const embTasks=parse(EMBEDDED_CSV);
     let changes=0;
     newTasks.forEach((nt,i)=>{
@@ -330,8 +326,6 @@ function tryLive(){
   .catch(e=>{
     b.innerHTML='OFFLINE';b.style.background='rgba(192,113,86,.2)';
     mt.textContent='Showing embedded data (sync failed)';
-
-    // Detect the specific issue and give clear guidance
     const isLocal=window.location.protocol==='file:';
     if(isLocal){
       showToast('⚠ Cannot sync from a local file. Upload this HTML to a web host (GitHub Pages, Netlify, Google Drive web) to enable live sync.','error');
@@ -341,7 +335,6 @@ function tryLive(){
   });
 }
 
-// ── Toast notification ──
 function showToast(msg,type){
   let t=document.getElementById('toast');
   if(!t){
@@ -359,15 +352,12 @@ function showToast(msg,type){
   }[type]||{bg:'#4D3C2F',color:'#fff'};
   t.style.background=colors.bg;t.style.color=colors.color;
   t.textContent=msg;
-  // Animate in
   requestAnimationFrame(()=>{t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)'});
-  // Auto dismiss
   clearTimeout(t._timer);
   t._timer=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(20px)'},type==='error'?8000:4000);
 }
 
 function parse(txt){
-  // Proper CSV parser that handles newlines inside quoted fields
   const lines=[];
   let row=[],cell='',inQ=false;
   for(let i=0;i<txt.length;i++){
@@ -378,7 +368,7 @@ function parse(txt){
     } else if(ch===','&&!inQ){
       row.push(cell.trim().replace(/\r/g,''));cell='';
     } else if((ch==='\n'||ch==='\r')&&!inQ){
-      if(ch==='\r'&&txt[i+1]==='\n')i++; // skip \r\n
+      if(ch==='\r'&&txt[i+1]==='\n')i++;
       row.push(cell.trim().replace(/\r/g,''));
       if(row.length>1||row[0]!=='')lines.push(row);
       row=[];cell='';
@@ -412,7 +402,6 @@ function parse(txt){
     const bd=pD(r[I.bg]||''),ed=pD(r[I.en]||'');
     const ig=tk.includes('✓')||tk.toLowerCase().includes('gate')||tk.toLowerCase().includes('sign-off')||tk.toLowerCase().includes('bàn giao all');
     const oR=r[I.ow]||'',oN=I.on>=0?(r[I.on]||''):'';
-    // Clean multiline text from deliverables
     const dlRaw=I.dl>=0?(r[I.dl]||''):'';
     const dl=dlRaw.replace(/\n/g,'; ').replace(/\s+/g,' ').trim();
     tasks.push({num:r[0]||'',phase:pk,name:tk.replace(/\n/g,' ').trim(),deliverable:dl,
@@ -432,14 +421,12 @@ function render(tasks){
   const wks=[];let d=new Date(mn);while(d<=mx){wks.push(new Date(d));d.setDate(d.getDate()+7)}
   const td=Math.round((mx-mn)/864e5)+1;
 
-  // Legend (white text in brown header)
   document.getElementById('legend').innerHTML=
     Object.values(PM).map(p=>`<div class="lg"><i style="background:${p.c}"></i>${p.lbl}</div>`).join('')+
     '<div class="lg" style="margin-left:6px"><i style="background:var(--done);border-radius:50%"></i>Done</div>'+
     '<div class="lg"><i style="background:var(--wip);border-radius:50%"></i>WIP</div>'+
     '<div class="lg"><i style="background:var(--pend);border-radius:50%"></i>Pending</div>';
 
-  // Stats
   const tot=tasks.length,dn=tasks.filter(t=>t.st==='d').length,wp=tasks.filter(t=>t.st==='w').length,
     pd=tasks.filter(t=>t.st==='p').length,ns=tot-dn-wp-pd,cr=tasks.filter(t=>t.pr==='c').length;
   const dp=Math.round(dn/tot*100),wp2=Math.round(wp/tot*100),pp=Math.round(pd/tot*100);
@@ -452,7 +439,6 @@ function render(tasks){
     `<div class="sc"><div class="v" style="color:var(--crit)">${cr}</div><div class="l">Critical</div></div>`+
     `<div class="sc w"><div class="l">Progress</div><div class="pbt"><div class="pbd" style="width:${dp}%"></div><div class="pbw" style="width:${wp2}%"></div><div class="pbp" style="width:${pp}%"></div></div><div class="pbpct">${dp}%</div></div>`;
 
-  // Phase cards
   const pg={};tasks.forEach(t=>{if(!pg[t.phase])pg[t.phase]=[];pg[t.phase].push(t)});
   const pKeys=Object.keys(pg);
   document.getElementById('phaseCards').innerHTML=pKeys.map((k,idx)=>{
@@ -466,15 +452,14 @@ function render(tasks){
       <div class="pb"><div class="pf" style="width:${pct}%;background:${p.c}"></div></div></div>`;
   }).join('');
 
-  // Week header
-  const thD=document.getElementById('thDates');thD.innerHTML='';
-  wks.forEach(ws=>{const we=new Date(ws);we.setDate(we.getDate()+6);
+  // Đã sửa: Chuẩn bị HTML Dates Header 1 lần, rồi sau đó inject nó vào từng Phase Group
+  let thDatesHTML = '';
+  wks.forEach(ws=>{
+    const we=new Date(ws);we.setDate(we.getDate()+6);
     const ic=TODAY>=ws&&TODAY<=we;
-    const el=document.createElement('div');el.className='tw'+(ic?' now':'');
-    el.innerHTML=fmt(ws)+'<span class="sub">'+fmt(we)+'</span>';thD.appendChild(el);
+    thDatesHTML += `<div class="tw${ic?' now':''}">${fmt(ws)}<span class="sub">${fmt(we)}</span></div>`;
   });
 
-  // Rows
   const body=document.getElementById('gBody');body.innerHTML='';let cp='';
   const stM={d:['gs d','Done'],w:['gs w','WIP'],p:['gs p','Pend'],n:['gs n','—']};
   let currentGroup=null;
@@ -484,7 +469,7 @@ function render(tasks){
       cp=task.phase;const p=PM[cp]||PM['Phase 1'];const pts=pg[cp]||[];
       const phaseId='phase-'+cp.replace(/\s+/g,'-');
 
-      // Phase header with toggle
+      // 1. Tạo Phase Header (.ph) và gắn luôn vào thân bảng
       const h=document.createElement('div');h.className='ph';h.style.background=p.bg;h.style.color=p.c;
       h.innerHTML=`<div class="ph-toggle">▼</div><div class="pi" style="background:${p.c}">${p.icon}</div>${p.lbl}<span class="pcnt">${pts.length} tasks</span>`;
       h.setAttribute('data-target',phaseId);
@@ -495,10 +480,17 @@ function render(tasks){
       };
       body.appendChild(h);
 
-      // Phase group container
+      // 2. Tạo Phase Group (nhóm chứa Tasks)
       currentGroup=document.createElement('div');
       currentGroup.className='phase-group';
       currentGroup.id=phaseId;
+
+      // 3. Đã sửa: Chèn Header Column (Deliverable/Owner...) VÀO BÊN TRONG ngay dưới từng Phase Header.
+      const thNode=document.createElement('div');
+      thNode.className='th';
+      thNode.innerHTML=`<div class="th-l">Deliverable / Owner / Status</div><div class="th-d">${thDatesHTML}</div>`;
+      currentGroup.appendChild(thNode);
+
       body.appendChild(currentGroup);
     }
     const p=PM[task.phase]||PM['Phase 1'];
@@ -506,7 +498,6 @@ function render(tasks){
     const [sc,sl]=stM[task.st]||stM.n;
     const pc={c:'gpri c',h:'gpri h',m:'gpri m',lo:'gpri lo'}[task.pr]||'gpri m';
 
-    // Show Deliverable/Output instead of Task name
     const displayName=task.deliverable||task.name;
 
     const info=document.createElement('div');info.className='gi';
@@ -538,7 +529,6 @@ function render(tasks){
     row.appendChild(info);row.appendChild(tl);
     currentGroup.appendChild(row);
 
-    // Tooltip — show Task name as title, Deliverable in detail
     row.addEventListener('mouseenter',()=>{
       const tip=document.getElementById('tip');
       tip.innerHTML=`<div class="tip-t">${task.name}</div>
